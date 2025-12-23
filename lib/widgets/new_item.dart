@@ -10,9 +10,14 @@ class NewItem extends StatefulWidget {
 
 class _NewItemState extends State<NewItem> {
   final _formKey = GlobalKey<FormState>();
+  var _name = '';
+  var _quantity = 1;
 
   void _saveItem() {
-    _formKey.currentState!.validate();
+    if (_formKey.currentState!.validate()) {
+      _formKey.currentState!.save();
+      print(" ========>" + _name);
+    }
   }
 
   @override
@@ -36,6 +41,9 @@ class _NewItemState extends State<NewItem> {
                   }
                   return null;
                 },
+                onSaved: (newValue) {
+                  _name = newValue!;
+                },
               ),
               Row(
                 crossAxisAlignment: CrossAxisAlignment.center,
@@ -43,7 +51,7 @@ class _NewItemState extends State<NewItem> {
                   Expanded(
                     child: TextFormField(
                       decoration: InputDecoration(label: Text('Quantity')),
-                      initialValue: '1',
+                      initialValue: _quantity.toString(),
                       keyboardType: TextInputType.number,
                       validator: (value) {
                         if (value == null ||
@@ -53,6 +61,9 @@ class _NewItemState extends State<NewItem> {
                           return 'Quantity must be positive valid number';
                         }
                         return null;
+                      },
+                      onSaved: (newValue) {
+                        _quantity = int.parse(newValue!);
                       },
                     ),
                   ),
