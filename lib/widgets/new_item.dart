@@ -1,5 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:shopping/data/categories.dart';
+import 'package:shopping/models/category.dart';
+import 'package:shopping/models/grocery_item.dart';
+import 'package:http/http.dart' as http;
+import 'dart:convert';
 
 class NewItem extends StatefulWidget {
   const NewItem({super.key});
@@ -12,11 +16,46 @@ class _NewItemState extends State<NewItem> {
   final _formKey = GlobalKey<FormState>();
   var _name = '';
   var _quantity = 1;
+  var _category = categories[Categories.vegetables]!;
 
-  void _saveItem() {
+  Future<void> _saveItem() async {
     if (_formKey.currentState!.validate()) {
       _formKey.currentState!.save();
-      print(" ========>" + _name);
+      final url = Uri.parse('http://localhost:3001/api/items');
+      final Map<String, dynamic> payload = {
+        'name': _name,
+        'quantity': _quantity,
+        'category': _category.title,
+      };
+
+      final response = await http.post(
+        url,
+        headers: {'Content-type': 'application/json'},
+        body: json.encode(payload),
+      );
+
+      final Map<String, dynamic> restData = json.decode(response.body);
+
+      // print(response.body);
+      // print(response.statusCode);
+
+      if (!context.mounted) {
+        return;
+      }
+      Navigator.of(context).pop(
+        GroceryItem(
+          id: restData['id'],
+          name: _name,
+          quantity: _quantity,
+          category: _category,
+        ),
+      );
+
+      // if (response.statusCode == 201) {
+      //   print('✅ Success: ${response.body}');
+      // } else {
+      //   print('❌ Error: ${response.statusCode} - ${response.body}');
+      // }
     }
   }
 
@@ -70,8 +109,9 @@ class _NewItemState extends State<NewItem> {
                   SizedBox(width: 10),
                   Expanded(
                     child: DropdownButtonFormField(
+                      initialValue: _category,
                       items: [
-                        for (final category in categories.entries)
+                        for (final category in categories.entries) // iteration
                           DropdownMenuItem(
                             value: category.value,
                             child: Row(
@@ -87,7 +127,11 @@ class _NewItemState extends State<NewItem> {
                             ),
                           ),
                       ],
-                      onChanged: (value) {},
+                      onChanged: (value) {
+                        setState(() {
+                          _category = value!;
+                        });
+                      },
                     ),
                   ),
                 ],
