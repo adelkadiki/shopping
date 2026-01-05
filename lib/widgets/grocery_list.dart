@@ -1,4 +1,6 @@
+import 'dart:async';
 import 'dart:convert';
+import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
@@ -18,6 +20,8 @@ class GroceryList extends StatefulWidget {
 class _GroceryListState extends State<GroceryList> {
   List<GroceryItem> _groceryItems = [];
   var _isLoading = true;
+  String? _result;
+  String? _error;
 
   @override
   void initState() {
@@ -40,30 +44,60 @@ class _GroceryListState extends State<GroceryList> {
   }
 
   void _loadItems() async {
-    print('LOAD ITEMS');
-    final loadedItems = []; // temporary list
-    final url = Uri.parse('http://localhost:3001/api/items');
-    final response = await http.get(url);
-
-    final convertedResponse = json.decode(response.body);
-    List<GroceryItem> itemsList = [];
-
-    itemsList.addAll(
-      convertedResponse.map<GroceryItem>((item) {
-        final Category categoryObj = categories.entries
-            .firstWhere((ctg) => ctg.value.title == item['category'])
-            .value;
-
-        return GroceryItem(
-          id: item['id'],
-          name: item['name'],
-          quantity: item['quantity'],
-          category: categoryObj,
-        );
-      }).toList(),
-    );
     setState(() {
-      _groceryItems = itemsList;
+      _error = null;
+      _result = null;
+    });
+
+    try {
+      final loadedItems = []; // temporary list
+      final url = Uri.http('localhost:3001', '/api/items');
+      final response = await http.get(url).timeout(Duration(seconds: 7));
+
+      if (response.statusCode == 200) {
+        final convertedResponse = json.decode(response.body);
+        List<GroceryItem> itemsList = [];
+
+        itemsList.addAll(
+          convertedResponse.map<GroceryItem>((item) {
+            final Category categoryObj = categories.entries
+                .firstWhere((ctg) => ctg.value.title == item['category'])
+                .value;
+
+            return GroceryItem(
+              id: item['id'],
+              name: item['name'],
+              quantity: item['quantity'],
+              category: categoryObj,
+            );
+          }).toList(),
+        );
+        setState(() {
+          _groceryItems = itemsList;
+          _isLoading = false;
+        });
+      } else {
+        //  Server returned an error (e.g., 404, 500)
+        throw HttpException('Server error: ${response.statusCode}');
+      }
+    } on TimeoutException {
+      //  Request took too long
+      _showError('Request timed out. Please check your connection.');
+    } on SocketException {
+      //  No internet or DNS failure
+      _showError('No internet connection.');
+    } on HttpException catch (e) {
+      //  HTTP-level error (4xx, 5xx)
+      _showError(e.message);
+    } catch (e) {
+      //  Unexpected errors (e.g., parsing JSON failed)
+      _showError('An unexpected error occurred: ${e.toString()}');
+    }
+  }
+
+  void _showError(String message) {
+    setState(() {
+      _error = message;
       _isLoading = false;
     });
   }
@@ -107,6 +141,15 @@ class _GroceryListState extends State<GroceryList> {
             ),
           ),
         ),
+      );
+    }
+
+    if (_error != null) {
+      content = Center(
+        child: Text(
+          _error!,
+          style: TextStyle(color: Colors.red, fontSize: 35),
+        ), // show the error message
       );
     }
 
