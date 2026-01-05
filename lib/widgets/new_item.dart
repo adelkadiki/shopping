@@ -17,10 +17,14 @@ class _NewItemState extends State<NewItem> {
   var _name = '';
   var _quantity = 1;
   var _category = categories[Categories.vegetables]!;
+  var _isSending = false;
 
   Future<void> _saveItem() async {
     if (_formKey.currentState!.validate()) {
       _formKey.currentState!.save();
+      setState(() {
+        _isSending = true;
+      });
       final url = Uri.parse('http://localhost:3001/api/items');
       final Map<String, dynamic> payload = {
         'name': _name,
@@ -36,9 +40,6 @@ class _NewItemState extends State<NewItem> {
 
       final Map<String, dynamic> restData = json.decode(response.body);
 
-      // print(response.body);
-      // print(response.statusCode);
-
       if (!context.mounted) {
         return;
       }
@@ -50,12 +51,6 @@ class _NewItemState extends State<NewItem> {
           category: _category,
         ),
       );
-
-      // if (response.statusCode == 201) {
-      //   print('✅ Success: ${response.body}');
-      // } else {
-      //   print('❌ Error: ${response.statusCode} - ${response.body}');
-      // }
     }
   }
 
@@ -141,13 +136,33 @@ class _NewItemState extends State<NewItem> {
                 //  crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
                   Spacer(flex: 1),
-                  TextButton(onPressed: _saveItem, child: const Text('Save')),
+                  TextButton(
+                    onPressed: _isSending
+                        ? null
+                        : // if it's true then button is deactivated
+                          _saveItem,
+                    child: _isSending
+                        ? CircularProgressIndicator(
+                            valueColor: AlwaysStoppedAnimation<Color>(
+                              Colors.white,
+                            ),
+                          )
+                        : const Text('Save'),
+                  ),
                   Spacer(flex: 2),
                   ElevatedButton(
-                    onPressed: () {
-                      _formKey.currentState!.reset();
-                    },
-                    child: const Text('Reset'),
+                    onPressed: _isSending
+                        ? null
+                        : () {
+                            _formKey.currentState!.reset();
+                          },
+                    child: _isSending
+                        ? CircularProgressIndicator(
+                            valueColor: AlwaysStoppedAnimation<Color>(
+                              Colors.white,
+                            ),
+                          )
+                        : const Text('Reset'),
                   ),
                   Spacer(flex: 1),
                 ],

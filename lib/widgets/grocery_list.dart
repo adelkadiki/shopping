@@ -4,9 +4,9 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:shopping/data/categories.dart';
 import 'package:shopping/models/category.dart';
-
 import 'package:shopping/models/grocery_item.dart';
 import 'package:shopping/widgets/new_item.dart';
+import 'package:flutter_spinkit/flutter_spinkit.dart';
 
 class GroceryList extends StatefulWidget {
   const GroceryList({super.key});
@@ -77,6 +77,12 @@ class _GroceryListState extends State<GroceryList> {
   @override
   Widget build(BuildContext context) {
     Widget content = const Center(child: Text('No items were added yet'));
+
+    if (_isLoading) {
+      content = const Center(
+        child: SpinKitPouringHourGlass(color: Colors.white, size: 70.0),
+      );
+    }
 
     if (_groceryItems.isNotEmpty) {
       content = ListView.builder(
